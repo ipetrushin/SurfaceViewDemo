@@ -17,6 +17,7 @@ public class MySurfaceView extends SurfaceView implements SurfaceHolder.Callback
         Random r = new Random();
         Paint p = new Paint();
         boolean runFlag = true;
+        // в конструкторе нужно передать holder для дальнейшего доступа к канве
         public DrawThread(SurfaceHolder holder) {
             this.holder = holder;
         }
@@ -27,14 +28,20 @@ public class MySurfaceView extends SurfaceView implements SurfaceHolder.Callback
             super.run();
             p.setColor(Color.YELLOW);
 
+            // выполняем цикл (рисуем кадры) пока флаг включен
             while (runFlag) {
                 Canvas c = holder.lockCanvas();
+                // если успешно захватили канву
                 if (c != null) {
                     c.drawColor(Color.RED);
+
+                    // случайные блуждания - сдвигаем координаты шарика в случайную сторону
                     x += r.nextFloat() * 10 - 5;
                     y += r.nextFloat() * 10 - 5;
                     c.drawCircle(x,y,30,p);
                     holder.unlockCanvasAndPost(c);
+
+                    // нужна пауза на каждом кадре
                     try {
                     Thread.sleep(100); }
                     catch (InterruptedException e) {}
@@ -43,6 +50,7 @@ public class MySurfaceView extends SurfaceView implements SurfaceHolder.Callback
 
         }
     }
+    DrawThread thread;
 
     public MySurfaceView(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -51,19 +59,24 @@ public class MySurfaceView extends SurfaceView implements SurfaceHolder.Callback
 
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
-        DrawThread thread = new DrawThread(holder);
+        thread = new DrawThread(holder);
         thread.start();
+        // убеждаемся, что поток запускается
         Log.d("mytag", "DrawThread is running");
 
     }
 
     @Override
     public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-
+        // при изменении конфигурации поверхности поток нужно перезапустить
+        thread.runFlag = false;
+        thread = new DrawThread(holder);
+        thread.start();
     }
 
+    // поверхность уничтожается - поток останавливаем
     @Override
     public void surfaceDestroyed(SurfaceHolder holder) {
-
+        thread.runFlag = false;
     }
 }
